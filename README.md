@@ -15,7 +15,7 @@ CoffeeBot is an autonomous robot developed to deliver coffee from the Common Gro
 
 ## Overview
 
-CoffeeBot is designed to operate autonomously using a combination of dead reckoning, LiDAR for obstacle detection, and APROTAX sensors for position calibration. It delivers coffee while monitoring its status and reporting back to a cloud-based dashboard via MQTT. The system is built for reliability, safety, and efficiency, using a custom Python-based control loop.
+CoffeeBot is designed to operate autonomously using a combination of dead reckoning, LiDAR for obstacle detection, and Apriltags for position calibration. It delivers coffee while monitoring its status and reporting back to a cloud-based dashboard via MQTT. The system is built for reliability, safety, and efficiency, using a custom Python-based control loop.
 
 ## System Architecture
 
@@ -83,7 +83,7 @@ graph TD
 ### Python Control Loop
 
 The main loop runs every 20 milliseconds (50Hz) and handles the following tasks:
-- Driving motors based on calculated path (dead reckoning + APROTAX calibration).
+- Driving motors based on calculated path (dead reckoning + AprilTag calibration).
 - Reading LiDAR sensor to detect obstacles.
 - Checking AprilTag sensor values and adjusting position.
 - Communicating with MQTT to send/receive messages from the cloud.
@@ -92,7 +92,7 @@ The main loop runs every 20 milliseconds (50Hz) and handles the following tasks:
 
 - **MQTT Communication**: Runs in a separate thread for sending and receiving status updates.
 - **LiDAR Data**: Handled in a separate thread to ensure non-blocking operations.
-- **APROTAX Detection**: Runs in a separate process, using network tables to retrieve values.
+- **Apriltag Detection**: Runs in a separate process, using network tables to retrieve values.
 
 ## Installation
 
@@ -124,7 +124,7 @@ To run CoffeeBot:
 
 ## Features
 
-- **Autonomous Navigation**: Uses dead reckoning and APROTAX for position control.
+- **Autonomous Navigation**: Uses dead reckoning and Apriltag for position control.
 - **Obstacle Detection**: LiDAR sensor to avoid collisions.
 - **Real-time Status Reporting**: Communicates with a cloud-based dashboard using MQTT.
 - **Custom Control System**: Python-based non-blocking control loop for efficient motor and sensor management.
