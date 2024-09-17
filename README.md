@@ -141,7 +141,3 @@ We welcome contributions! Please follow these steps:
 ## License
 
 This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
-
----
-
-That should give a comprehensive introduction and setup guide for your CoffeeBot Python repository! Let me know if you'd like to add anything else.
