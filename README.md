@@ -83,6 +83,14 @@ graph TD
 - **Python Threads and Queues**: For handling concurrent processes (e.g., sensor readings, MQTT communication).
 
 ### Python Control Loop
+
+The main loop runs every 20 milliseconds (50Hz) and handles the following tasks:
+- Driving motors based on calculated path (dead reckoning + AprilTag calibration).
+- Reading LiDAR sensor to detect obstacles.
+- Checking AprilTag sensor values and adjusting position.
+- Communicating with MQTT to send/receive messages from the cloud.
+
+### The Driving part
 ```mermaid
 graph TD
     A[Deliver Button Pressed GPIO] -->|Signal| B[Path with Segments]
@@ -100,11 +108,20 @@ graph TD
     F -->|Complete Segment| I[Next Segment from Queue]
     D --> J[End of Path]
 ```
-The main loop runs every 20 milliseconds (50Hz) and handles the following tasks:
-- Driving motors based on calculated path (dead reckoning + AprilTag calibration).
-- Reading LiDAR sensor to detect obstacles.
-- Checking AprilTag sensor values and adjusting position.
-- Communicating with MQTT to send/receive messages from the cloud.
+1. **Deliver Button (GPIO)**: Triggers the start of a delivery when pressed. It sends a signal to initiate the path execution.
+   
+2. **Path with Segments**: The path consists of multiple segments. Each segment defines a direction (like turning a specific angle) and a distance to travel.
+
+3. **Queue of Segments**: Once the button is pressed, the segments are placed into a queue, which the control loop will process.
+
+4. **Main Control Loop**: Reads each segment from the queue and executes it using PID control to handle motor movement for turning and driving.
+
+5. **LiDAR Obstacle Detection**: If an obstacle is detected, the current motion stops. The control loop waits for the obstacle to clear, then resumes motion by executing the next segment.
+
+6. **Motor Control**: Each segment is handled with PID control to ensure accurate movement and direction adjustments.
+
+7. **Completion of Segments**: Once a segment is completed, the next one is fetched from the queue until the path is complete.
+
 
 ### Multi-threading
 
