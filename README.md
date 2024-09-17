@@ -34,12 +34,11 @@ graph TD
     B -->|USB| C[Canivore Controller]
     C -->|CAN Bus| D[Kraken Motors]
     B -->|USB| E[LiDAR Sensor]
-    B -->|USB| F[APROTAG Camera]
-    B -->|USB| G[USB Microphone]
+    B -->|USB| F[USB Camera/Microphone]
     B -->|USB| H[USB Speaker]
-    B -->|USB| I[LED Light Strips]
-    A -->|Power| J[Power Up/Down Button]
-    A -->|Power| K[Emergency Stop Button]
+    B -->|GPIO| I[LED Light Strips]
+    B -->|GPIO| J[Power Up/Down Button]
+    B -->|GPIO| K[Emergency Stop Button]
 ```
 - **Motors**: Kraken motors, driven by CAN bus through a Canivore controller
 - **CPU**: Raspberry Pi 5
