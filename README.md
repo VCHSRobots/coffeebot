@@ -39,6 +39,8 @@ graph TD
     B -->|GPIO| I[LED Light Strips]
     B -->|GPIO| J[Power Up/Down Button]
     B -->|GPIO| K[Emergency Stop Button]
+    A -->|Power| D[Kraken Motors]
+
 ```
 - **Motors**: Kraken motors, driven by CAN bus through a Canivore controller
 - **CPU**: Raspberry Pi 5
