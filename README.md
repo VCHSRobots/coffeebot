@@ -51,7 +51,6 @@ graph TD
 
 ## Software
 
-### Dependencies
 ```mermaid
 graph TD
     A[Main Control Loop non-blocking, 20ms] --> B[Motor Control]
@@ -75,13 +74,32 @@ graph TD
     
     A --> J[MQTT Communication to Cloud Dashboard]
 ```
+
+### Dependencies
+
 - **CTRE Phoenix 6**: Used to control Kraken motors and read encoder data over CAN bus.
 - **AprilTag Library**: Used to read AprilTag sensor data and calculate the robot’s position.
 - **MQTT**: For communication with the cloud-based dashboard, using a Python MQTT library.
 - **Python Threads and Queues**: For handling concurrent processes (e.g., sensor readings, MQTT communication).
 
 ### Python Control Loop
-
+```mermaid
+graph TD
+    A[Deliver Button Pressed GPIO] -->|Signal| B[Path with Segments]
+    B --> C[Queue of Segments]
+    C --> D[Main Control Loop]
+    D --> E[Read Segment: Direction & Distance]
+    E -->|PID Control| F[Motor Control]
+    
+    subgraph "Obstacle Handling"
+        G[LiDAR Obstacle Detection] -->|Stop Motion| D
+        G --> H[Wait for Obstacle to Clear]
+        H -->|Resume Motion| D
+    end
+    
+    F -->|Complete Segment| I[Next Segment from Queue]
+    D --> J[End of Path]
+```
 The main loop runs every 20 milliseconds (50Hz) and handles the following tasks:
 - Driving motors based on calculated path (dead reckoning + AprilTag calibration).
 - Reading LiDAR sensor to detect obstacles.
