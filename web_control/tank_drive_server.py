@@ -12,21 +12,27 @@ html = """
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Tank Drive Control</title>
     <style>
-        body {
-            font-family: Arial, sans-serif;
+        html, body {
             margin: 0;
             padding: 0;
+            overflow: hidden;
+            position: fixed;
+            width: 100%;
+            height: 100%;
+        }
+        body {
+            font-family: Arial, sans-serif;
             display: flex;
             flex-direction: column;
-            height: 100vh;
             background-color: #f0f0f0;
         }
         .container {
             display: flex;
             flex: 1;
+            touch-action: none;
         }
         .slider-container {
             display: flex;
