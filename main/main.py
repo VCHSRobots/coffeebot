@@ -1,7 +1,8 @@
 import time
+import queue
+from apriltag_detector import AprilTagDetector
 
 LOOP_PERIOD = 0.01994  # slightly less than 20ms
-import queue
 
 # Initialize queues
 lidar_queue = queue.Queue()
@@ -12,7 +13,12 @@ auto_queue = queue.Queue()
 last_pid_command_finished = True
 current_position = [0.0, 0.0, 0.0]  # [x, y, theta]
 
+# Initialize AprilTag detector
+apriltag_detector = AprilTagDetector()
+
 def periodic():
+    global current_position, last_pid_command_finished
+
     # 0. Check the lidar queue
     if not lidar_queue.empty():
         obstacle_distance, obstacle_direction = lidar_queue.get()
@@ -43,6 +49,12 @@ def periodic():
         # Update the robot's current position based on AprilTag data
         current_position = update_position(current_position, april_tag_data)
 
+    # 5. Process camera AprilTag detection
+    camera_april_tag_data = process_camera_april_tags()
+    if camera_april_tag_data:
+        # Update the robot's current position based on camera AprilTag data
+        current_position = update_position(current_position, camera_april_tag_data)
+
 def is_pid_command_finished():
     # Check if the current PID command (e.g., turning or driving straight) is finished
     # Implement your logic here
@@ -53,11 +65,21 @@ def get_april_tag_data():
     # Implement your code to retrieve data from the NetworkTable
     return None
 
-def update_position(current_position, april_tag_data):
-    # Update the robot's current position based on AprilTag data
-    # Implement your code to update the position
-    return current_position
+def process_camera_april_tags():
+    image = apriltag_detector.capture_image()
+    detections = apriltag_detector.detect_tags(image)
+    if detections:
+        # For simplicity, we'll use the first detected tag
+        return detections[0]['pose']
+    return None
 
+def update_position(current_position, new_pose):
+    # Implement your logic to update the current position based on the new pose
+    # This is a simplified example and may need to be adjusted based on your coordinate system
+    x = new_pose[0, 3]
+    y = new_pose[1, 3]
+    theta = np.arctan2(new_pose[1, 0], new_pose[0, 0])
+    return [x, y, theta]
 
 if __name__ == "__main__":
     print("Starting main control loop...")
