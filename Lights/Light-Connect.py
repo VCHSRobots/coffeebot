@@ -2,28 +2,31 @@ import serial
 import time
 
 try:
-    ser = serial.Serial('COM5', 115200, timeout=1)
-    print("Connected to COM5")
+    ser = serial.Serial('COM3', 115200, timeout=1)
+    print("Connected to COM3")
 
     while True:
-        command = input("Enter a color (red, green, blue, random, clear) or 'exit' to quit: ").strip().lower()
+        command = input("Enter a color (red, green, blue, clear) or 'exit' to quit: ").strip().lower()
         
         if command == 'exit':
             break
 
-        if command in ['red', 'green', 'blue', 'random', 'clear']:
+        if command in ['red', 'green', 'blue', 'clear']:
             try:
+                command = command + "\n"
                 print(f"Sending command: {command}")
                 ser.write(command.encode())
                 
-                # Wait a bit and then read any response
-                time.sleep(0.5)
-                response = ser.readline().decode('utf-8').strip()
-                if response:
-                    print(f"Received response: {response}")
-                else:
-                    print("No response received")
-
+                # Read all available responses
+                while True:
+                    if ser.in_waiting:
+                        response = ser.readline().decode('utf-8').strip()
+                        if response:
+                            print(f"Received response: {response}")
+                        else:
+                            print("Empty response received")
+                    else:
+                        break
             except serial.SerialException as e:
                 print(f"An error occurred while communicating: {e}")
         else:

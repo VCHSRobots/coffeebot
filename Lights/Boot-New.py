@@ -1,15 +1,15 @@
-from machine import Pin, UART
+from machine import Pin
 import time
 from neopixel import NeoPixel
 import random
+import math
+import sys
+import uselect
 
 NUM_Led = int(16)
 led = Pin(25, Pin.OUT)
 neopin = Pin(16, Pin.OUT)
 np = NeoPixel(neopin, NUM_Led)
-
-# UART setup
-uart = UART(0, baudrate=115200, tx=Pin(0), rx=Pin(1))
 
 def clear():
     for i in range(NUM_Led):
@@ -21,34 +21,41 @@ def setallpix(color):
         np[i] = color
     np.write()
 
-Colors3 = [
-    (255, 87, 51),   # Coral Red 0
-    (64, 224, 208),  # Turquoise 1
-    (255, 195, 0),   # Golden Yellow 2
-    (75, 0, 130),    # Indigo 3
-    (50, 205, 50),   # Lime Green 4
-    (255, 105, 180), # Hot Pink 5
-    (0, 128, 128),   # Teal 6
-    (255, 165, 0),   # Orange 7
-    (138, 43, 226),  # Blue Violet 8
-    (0, 191, 255),   # Deep Sky Blue 9
-]
+def adjust_brightness(color, brightness):
+    r, g, b = color
+    r = int(r * brightness)
+    g = int(g * brightness)
+    b = int(b * brightness)
+    return (r, g, b)
+
+def fade(color):
+    for brightness in [x*0.01 for x in range(101)] + [x*0.01 for x in range(100, -1, -1)]:
+        setallpix(adjust_brightness(color,brightness))
+        np.write()
+        time.sleep(0.01)
+
+Colors3 = {
+    "red": (255, 0, 0),
+    "orange": (255, 127, 0),
+    "yellow": (255, 255, 0),
+    "green": (0, 255, 0),
+    "blue": (0, 0, 255),
+    "indigo": (75, 0, 130),
+    "violet": (143, 0, 255)
+}
 
 def handle_command(command):
     command = command.strip().lower()
     print(f"Received command: {command}")
     if command == b"red":
-        setallpix(Colors3[2])
+        setallpix(Colors3["red"])
         print("Set color to red")
     elif command == b"green":
-        setallpix(Colors3[4])
+        setallpix(Colors3["green"])
         print("Set color to green")
     elif command == b"blue":
-        setallpix(Colors3[9])
+        setallpix(Colors3["blue"])
         print("Set color to blue")
-    elif command == b"random":
-        setallpix(Colors3[random.randint(0,9)])
-        print("Set color to random")
     elif command == b"clear":
         clear()
         print("Cleared all LEDs")
@@ -60,10 +67,14 @@ clear()  # Start with all LEDs off
 
 print("LED control program is running. Waiting for commands...")
 
+# Set up poll for stdin
+poll = uselect.poll()
+poll.register(sys.stdin, uselect.POLLIN)
+
 while True:
-    if uart.any():
+    if poll.poll(0):  # Check if there's data available to read
         try:
-            command = uart.readline().strip()
+            command = sys.stdin.readline().strip()
             if command:
                 handle_command(command)
             else:
