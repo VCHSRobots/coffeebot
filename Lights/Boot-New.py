@@ -47,20 +47,20 @@ Colors3 = {
 def handle_command(command):
     command = command.strip().lower()
     print(f"Received command: {command}")
-    if command == b"red":
-        setallpix(Colors3["red"])
-        print("Set color to red")
-    elif command == b"green":
-        setallpix(Colors3["green"])
-        print("Set color to green")
-    elif command == b"blue":
-        setallpix(Colors3["blue"])
-        print("Set color to blue")
-    elif command == b"clear":
+    
+    if command in Colors3:
+        setallpix(Colors3[command])
+        print(f"Set color to {command}")
+    elif command == "random":
+        random_color = random.choice(list(Colors3.values()))
+        setallpix(random_color)
+        print(f"Set color to random: {random_color}")
+    elif command == "clear":
         clear()
         print("Cleared all LEDs")
     else:
         print(f"Unknown command: {command}")
+        print(f"Available commands: {', '.join(list(Colors3.keys()) + ['random', 'clear'])}")
 
 print("Starting LED control program...")
 clear()  # Start with all LEDs off
@@ -77,7 +77,5 @@ while True:
             command = sys.stdin.readline().strip()
             if command:
                 handle_command(command)
-            else:
-                print("Received empty command")
         except Exception as e:
             print(f"Error processing command: {e}")
