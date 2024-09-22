@@ -13,10 +13,16 @@ try:
 
         if command in ['red', 'green', 'blue', 'clear']:
             try:
+                # Clear input buffer
+                ser.reset_input_buffer()
+
                 command = command + "\n"
                 print(f"Sending command: {command}")
                 ser.write(command.encode())
                 
+                # Wait a bit for the response
+                time.sleep(0.1)
+
                 # Read all available responses
                 while True:
                     if ser.in_waiting:
