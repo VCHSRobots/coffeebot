@@ -164,6 +164,58 @@ To run CoffeeBot:
 - **Real-time Status Reporting**: Communicates with a cloud-based dashboard using MQTT.
 - **Custom Control System**: Python-based non-blocking control loop for efficient motor and sensor management.
 
+## How to set up a Raspberry Pi to work with CTRE CANivore device and Kraken motors
+
+1. I used Raspberry Pi 5.
+2. I updated the OS and software packages to the latest by using the `bookworm` version of the OS, and then used `apt dist-upgrade` to update. My OS version is `Linux raspberrypi 6.6.47+rpt-rpi-2712 #1 SMP PREEMPT Debian 1:6.6.47-1+rpt1 (2024-09-02) aarch64 GNU/Linux`.
+3. After doing the above, I was able to install the `canivore-usb` driver successfully. This was the most painful part. The `canivore-usb` package version I have is `1.13`.
+4. After that, I used the "undocumented" `caniv` binary that comes with the `canivore-usb` package to set up the CANivore device. Here is the usage of the tool:
+
+   ```
+   (coffeebot) pi@raspberrypi:~/code/coffeebot $ caniv -h
+   CTRE CANivore Command-line Interface
+   Usage:
+     caniv [OPTION...]
+
+     -d, --device arg  Selects CANivore by serial number or name. Specify "*" to
+                       select any device.
+     -a, --any         Equivalent to [-d "*"]
+     -v, --verbose     Print verbose messages
+     -h, --help        Print this help message
+
+    Action options:
+         --version          Get version of this program
+     -l, --list             List all discovered CANivore devices
+     -s, --setup            Brings up the CANivore network
+         --termination arg  Enables or Disables the CAN bus termination resistor
+         --esp32 arg        Enables or Disables the ESP32 module
+     -b, --blink            Blinks selected CANivore
+     -r, --reset            Resets selected CANivore
+     -n, --name arg         Sets name of selected CANivore. You must reset the
+                            CANivore for the new name to take effect.
+     -f, --flash arg        Field upgrades selected CANivore with crf file
+     -i, --info             Solicit information from selected CANivore
+         --license          Display license status of device
+   ```
+
+   I used `caniv -s -a` to set up the CANivore, and `caniv -l` to list CANivore devices.
+
+5. Then, I used the default Python 3 (3.11), standard `venv` package to create a virtual environment for Python, installed the `phoenix6` package, and used the following Python program to run the first motor with ID 0:
+
+   ```python
+   from phoenix6 import controls, configs, hardware, signals, unmanaged
+   import time
+
+   talonfx = hardware.TalonFX(0)
+
+   motor_request = controls.DutyCycleOut(0.0)
+   motor_request.output = 0.2
+   while True:
+       # feed the enable signal, timeout after 100ms
+       unmanaged.feed_enable(0.100)
+       talonfx.set_control(motor_request)
+       time.sleep(0.05)
+   ```
 ## Contributing
 
 We welcome contributions! Please follow these steps:
