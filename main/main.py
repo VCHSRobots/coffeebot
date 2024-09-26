@@ -1,20 +1,31 @@
-import time
+import time, sys, os, ast, signal
 import queue
-from apriltag_detector import AprilTagDetector
+import threading
+#from apriltag_detector import AprilTagDetector
+from phoenix6 import controls, configs, hardware, signals, unmanaged
 
+sys.path.append(os.path.join(os.path.dirname(__file__), os.pardir))
+from web_control.tank_drive_server import run_teleop_server
+
+talonfx = hardware.TalonFX(0)
+motor_request = controls.DutyCycleOut(0.0)
 LOOP_PERIOD = 0.01994  # slightly less than 20ms
 
 # Initialize queues
 lidar_queue = queue.Queue()
-teleop_queue = queue.Queue()
 auto_queue = queue.Queue()
+teleop_queue = queue.Queue(2)
 
 # Initialize variables
 last_pid_command_finished = True
 current_position = [0.0, 0.0, 0.0]  # [x, y, theta]
 
 # Initialize AprilTag detector
-apriltag_detector = AprilTagDetector()
+#apriltag_detector = AprilTagDetector()
+
+def signal_handler(signal, frame):
+    print('Received Ctrl+C, exiting...')
+    sys.exit(0)
 
 def periodic():
     global current_position, last_pid_command_finished
@@ -22,12 +33,16 @@ def periodic():
     # 0. Check the lidar queue
     if not lidar_queue.empty():
         obstacle_distance, obstacle_direction = lidar_queue.get()
-        # Process lidar data (e.g., avoid obstacles)
 
-    # 1. Check the teleop queue
+	# 1. Check the teleop queue
     if not teleop_queue.empty():
-        left_power, right_power = teleop_queue.get()
-        # Send drive commands to motors
+        msg_str = teleop_queue.get()
+        msg_dict = ast.literal_eval(msg_str)
+        left_power, right_power = msg_dict.values()
+        unmanaged.feed_enable(0.100)
+        motor_request.output = left_power
+        talonfx.set_control(motor_request)
+
 
     # 2. Check the auto queue
     if not auto_queue.empty():
@@ -66,11 +81,11 @@ def get_april_tag_data():
     return None
 
 def process_camera_april_tags():
-    image = apriltag_detector.capture_image()
-    detections = apriltag_detector.detect_tags(image)
-    if detections:
+#    image = apriltag_detector.capture_image()
+#    detections = apriltag_detector.detect_tags(image)
+#    if detections:
         # For simplicity, we'll use the first detected tag
-        return detections[0]['pose']
+#        return detections[0]['pose']
     return None
 
 def update_position(current_position, new_pose):
@@ -81,7 +96,7 @@ def update_position(current_position, new_pose):
     theta = np.arctan2(new_pose[1, 0], new_pose[0, 0])
     return [x, y, theta]
 
-if __name__ == "__main__":
+def main_loop():
     print("Starting main control loop...")
     start_time = time.time()
     while True:
@@ -106,4 +121,16 @@ if __name__ == "__main__":
         start_time = loop_end_time
 
         # Print the loop time for debugging purposes
-        print(f"Loop time: {loop_time * 1000:.3f}ms")
+        #print(f"Loop time: {loop_time * 1000:.3f}ms")
+
+if __name__ == "__main__":
+    #, args=(teleop_queue,)
+    signal.signal(signal.SIGINT, signal_handler)
+    main_loop_thread = threading.Thread(target=main_loop)
+    main_loop_thread.start()
+    try:
+        run_teleop_server(teleop_queue)
+    except KeyboardInterrupt:
+        print('Received Ctrl+C, exiting...')
+        sys.exit(0)
+

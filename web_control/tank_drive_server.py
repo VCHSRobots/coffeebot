@@ -1,4 +1,4 @@
-import asyncio
+import asyncio, queue
 import websockets
 from aiohttp import web
 import logging
@@ -6,6 +6,8 @@ import logging
 # Set up logging
 logging.basicConfig(level=logging.DEBUG)
 logger = logging.getLogger(__name__)
+msg_queue = None
+
 # HTML content
 html = """
 <!DOCTYPE html>
@@ -154,21 +156,29 @@ async def websocket_handler(request):
         async for msg in ws:
             if msg.type == web.WSMsgType.TEXT:
                 logger.info(f'Received message: {msg.data}')
-                # Process incoming messages if needed
+                msg_queue.put(msg.data)
+                try:
+                    msg_queue.put(msg.data, block=False)
+                except queue.Full:
+                    print("Queue is full, cannot add message")
             elif msg.type == web.WSMsgType.ERROR:
                 logger.error(f'WebSocket connection closed with exception {ws.exception()}')
     finally:
         logger.info('WebSocket connection closed')
-    
     return ws
 
 async def index(request):
     return web.Response(text=html, content_type='text/html')
 
-if __name__ == '__main__':
+def run_teleop_server(queue):
+    global msg_queue
+    msg_queue=queue
     app = web.Application()
     app.router.add_get('/', index)
     app.router.add_get('/ws', websocket_handler)
 
     logger.info('Starting server')
     web.run_app(app, host='0.0.0.0', port=8080)
+
+if __name__ == '__main__':
+    run_teleop_server()
