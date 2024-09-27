@@ -2,6 +2,27 @@
 import paho.mqtt.client as paho
 from paho import mqtt
 import time
+import os
+
+password=""
+
+def load_password():
+    global password
+    """
+    Load the MQTT password from the COFFEEBOT_MQTT_PASSWD environment variable.
+    Returns:
+        str: The password value, or None if the environment variable is not set.
+    """
+    try:
+        password = os.environ['COFFEEBOT_MQTT_PASSWD']
+        if password:
+            return password
+        else:
+            print("Warning: COFFEEBOT_MQTT_PASSWD environment variable is set but empty.")
+            return None
+    except KeyError:
+        print("Warning: COFFEEBOT_MQTT_PASSWD environment variable is not set.")
+        return None
 
 def on_publish(client, userdata, mid):
     print("publish: mid: "+str(mid))
@@ -20,8 +41,9 @@ def on_message(client, userdata, msg):
     client.publish('coffeebot/robot-response', payload='{"status":"my code is 2"}', qos=0)
 
 
- 
+load_password()
 client = paho.Client( protocol=paho.MQTTv31)
+client.username_pw_set('coffeebot1', password)
 client.on_publish = on_publish
 client.on_connect= on_connect
 client.on_subscribe = on_subscribe
