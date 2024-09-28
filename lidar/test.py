@@ -17,9 +17,9 @@ with Sweep('/dev/ttyUSB0') as sweep:
 
     # get_scans is coroutine-based generator lazily returning scans ad infinitum
     for scan in itertools.islice(sweep.get_scans(), 300):
-        #print(scan)
-        for s in scan.samples:
-            if (s.distance<100 and s.signal_strength>100):
-                print(s)
+        print(scan)
+        #for s in scan.samples:
+        #    if (s.distance<100 and s.signal_strength>100):
+        #        print(s)
 
 

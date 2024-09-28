@@ -156,7 +156,7 @@ async def websocket_handler(request):
         async for msg in ws:
             if msg.type == web.WSMsgType.TEXT:
                 logger.info(f'Received message: {msg.data}')
-                msg_queue.put(msg.data)
+                #msg_queue.put(msg.data)
                 try:
                     msg_queue.put(msg.data, block=False)
                 except queue.Full:

@@ -6,13 +6,16 @@ from phoenix6 import controls, configs, hardware, signals, unmanaged
 
 sys.path.append(os.path.join(os.path.dirname(__file__), os.pardir))
 from web_control.tank_drive_server import run_teleop_server
+from lidar.lidar import lidar_loop
+
+lidar_enabled=True
 
 talonfx = hardware.TalonFX(0)
 motor_request = controls.DutyCycleOut(0.0)
 LOOP_PERIOD = 0.01994  # slightly less than 20ms
 
 # Initialize queues
-lidar_queue = queue.Queue()
+lidar_queue = queue.Queue(2)
 auto_queue = queue.Queue()
 teleop_queue = queue.Queue(2)
 
@@ -20,6 +23,8 @@ teleop_queue = queue.Queue(2)
 last_pid_command_finished = True
 current_position = [0.0, 0.0, 0.0]  # [x, y, theta]
 
+obstacle_signal=True #default to true to be safe. 
+no_lidar_count=0
 # Initialize AprilTag detector
 #apriltag_detector = AprilTagDetector()
 
@@ -28,20 +33,29 @@ def signal_handler(signal, frame):
     sys.exit(0)
 
 def periodic():
-    global current_position, last_pid_command_finished
+    global current_position, last_pid_command_finished, obstacle_signal, no_lidar_count
 
     # 0. Check the lidar queue
-    if not lidar_queue.empty():
-        obstacle_distance, obstacle_direction = lidar_queue.get()
+    if lidar_queue.empty():
+        no_lidar_count+=1
+        #if no_lidar_count>10: #force robot to stop if no lidar signal
+        #    obstacle_signal=True
+    else:
+        no_lidar_count=0
+        obstacle_timestamp, obstacle_signal= lidar_queue.get()
+        print("got lidar signal ",obstacle_signal)
 
 	# 1. Check the teleop queue
     if not teleop_queue.empty():
         msg_str = teleop_queue.get()
         msg_dict = ast.literal_eval(msg_str)
         left_power, right_power = msg_dict.values()
-        unmanaged.feed_enable(0.100)
-        motor_request.output = left_power
-        talonfx.set_control(motor_request)
+        if lidar_enabled and obstacle_signal==True:
+            print("obstacle detected")
+        else:
+            unmanaged.feed_enable(0.100)
+            motor_request.output = left_power
+            talonfx.set_control(motor_request)
 
 
     # 2. Check the auto queue
@@ -126,8 +140,13 @@ def main_loop():
 if __name__ == "__main__":
     #, args=(teleop_queue,)
     signal.signal(signal.SIGINT, signal_handler)
+
     main_loop_thread = threading.Thread(target=main_loop)
     main_loop_thread.start()
+
+    lidar_loop_thread = threading.Thread(target=lidar_loop,args=(lidar_queue,))
+    lidar_loop_thread.start()
+
     try:
         run_teleop_server(teleop_queue)
     except KeyboardInterrupt:
