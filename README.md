@@ -144,6 +144,7 @@ graph TD
    ```bash
    pip install -r requirements.txt
    ```
+   Then install the lidar python library following [the lidar readme](lidar/README.md)
 
 3. Set up hardware connections (CAN bus, sensors, etc.) as described in the [Hardware](#hardware) section.
 
