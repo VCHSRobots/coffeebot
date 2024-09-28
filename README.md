@@ -129,6 +129,9 @@ graph TD
 - **LiDAR Data**: Handled in a separate thread to ensure non-blocking operations.
 - **Apriltag Detection**: Runs in a separate process, using network tables to retrieve values.
 
+### Lidar object detection logic
+![lidar ojbect detection logic](lidar-object-detection.drawio.png)
+
 ## Installation
 
 1. Clone the repository:
