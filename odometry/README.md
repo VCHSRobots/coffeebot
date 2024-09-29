@@ -5,3 +5,5 @@
 
 ### based on the above calculation, we can calculate the absolute position and orientation with defined coordinate plane
 ![odometry2](odometry-2.png)
+
+Credit: [https://medium.com/@nahmed3536/wheel-odometry-model-for-differential-drive-robotics-91b85a012299]
