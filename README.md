@@ -132,6 +132,9 @@ graph TD
 ### Lidar object detection logic
 ![lidar ojbect detection logic](lidar-object-detection.drawio.png)
 
+### Odometry logic
+![odometry logic](odometry/README.md)
+
 ## Installation
 
 1. Clone the repository:
