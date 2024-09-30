@@ -133,7 +133,7 @@ graph TD
 ![lidar ojbect detection logic](lidar-object-detection.drawio.png)
 
 ### Odometry logic
-![odometry logic](odometry/README.md)
+[See here for the detailed odometry logic](odometry/README.md)
 
 ## Installation
 
