@@ -8,7 +8,7 @@ sys.path.append(os.path.join(os.path.dirname(__file__), os.pardir))
 from web_control.tank_drive_server import run_teleop_server
 from lidar.lidar import lidar_loop
 
-lidar_enabled=True
+lidar_enabled=False
 
 talonfx = hardware.TalonFX(0)
 motor_request = controls.DutyCycleOut(0.0)
@@ -56,7 +56,10 @@ def periodic():
             unmanaged.feed_enable(0.100)
             motor_request.output = left_power
             talonfx.set_control(motor_request)
-
+            # Get the position signal
+            position_signal = talonfx.get_position()
+            encoder_value = position_signal.value
+            print(f"Current encoder value: {encoder_value}")
 
     # 2. Check the auto queue
     if not auto_queue.empty():
@@ -144,8 +147,9 @@ if __name__ == "__main__":
     main_loop_thread = threading.Thread(target=main_loop)
     main_loop_thread.start()
 
-    lidar_loop_thread = threading.Thread(target=lidar_loop,args=(lidar_queue,))
-    lidar_loop_thread.start()
+    if lidar_enabled:
+        lidar_loop_thread = threading.Thread(target=lidar_loop,args=(lidar_queue,))
+        lidar_loop_thread.start()
 
     try:
         run_teleop_server(teleop_queue)
