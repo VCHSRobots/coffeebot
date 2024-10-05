@@ -10,7 +10,8 @@ from lidar.lidar import lidar_loop
 
 lidar_enabled=False
 
-talonfx = hardware.TalonFX(0)
+talonfx_left = hardware.TalonFX(1)
+talonfx_right = hardware.TalonFX(2)
 motor_request = controls.DutyCycleOut(0.0)
 LOOP_PERIOD = 0.01994  # slightly less than 20ms
 
@@ -50,14 +51,22 @@ def periodic():
         msg_str = teleop_queue.get()
         msg_dict = ast.literal_eval(msg_str)
         left_power, right_power = msg_dict.values()
+        if (left_power <= 0 and right_power <= 0) or (left_power >= 0 and right_power >= 0):
+            limit_factor = 0.1
+        else:
+            limit_factor = 0.5
+        left_power = left_power*limit_factor
+        right_power = -right_power*limit_factor
         if lidar_enabled and obstacle_signal==True:
             print("obstacle detected")
         else:
             unmanaged.feed_enable(0.100)
             motor_request.output = left_power
-            talonfx.set_control(motor_request)
+            talonfx_left.set_control(motor_request)
+            motor_request.output = right_power
+            talonfx_right.set_control(motor_request)
             # Get the position signal
-            position_signal = talonfx.get_position()
+            position_signal = talonfx_left.get_position()
             encoder_value = position_signal.value
             print(f"Current encoder value: {encoder_value}")
 
