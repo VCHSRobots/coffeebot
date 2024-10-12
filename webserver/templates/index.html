@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CoffeeBot Dashboard</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.1.1/css/all.min.css">
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            margin: 0;
+            background-color: #f0f0f0;
+        }
+        .dashboard {
+            background-color: white;
+            border-radius: 10px;
+            padding: 20px;
+            box-shadow: 0 0 10px rgba(0,0,0,0.1);
+        }
+        .stat {
+            display: flex;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+        .icon {
+            font-size: 2em;
+            margin-right: 15px;
+            width: 40px;
+            text-align: center;
+        }
+        .value {
+            font-size: 1.2em;
+            font-weight: bold;
+        }
+        h1 {
+            text-align: center;
+            color: #333;
+        }
+    </style>
+</head>
+<body>
+    <div class="dashboard">
+        <h1>CoffeeBot Dashboard</h1>
+        <div class="stat">
+            <div class="icon"><i class="fas fa-battery-half"></i></div>
+            <div class="value" id="battery">Battery: ---%</div>
+        </div>
+        <div class="stat">
+            <div class="icon"><i class="fas fa-power-off"></i></div>
+            <div class="value" id="status">Status: ---</div>
+        </div>
+        <div class="stat">
+            <div class="icon"><i class="fas fa-mug-hot"></i></div>
+            <div class="value" id="total-runs">Total Runs: ---</div>
+        </div>
+        <div class="stat">
+            <div class="icon"><i class="fas fa-calendar-day"></i></div>
+            <div class="value" id="daily-runs">Daily Runs: ---</div>
+        </div>
+    </div>
+
+    <script>
+        const eventSource = new EventSource('/stats');
+        eventSource.onmessage = function(event) {
+            const data = JSON.parse(event.data);
+            document.getElementById('battery').textContent = `Battery: ${data.battery_level}%`;
+            document.getElementById('status').textContent = `Status: ${data.is_live ? 'Live' : 'Offline'}`;
+            document.getElementById('total-runs').textContent = `Total Runs: ${data.total_runs}`;
+            document.getElementById('daily-runs').textContent = `Daily Runs: ${data.daily_runs}`;
+        };
+    </script>
+</body>
+</html>
