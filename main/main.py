@@ -10,6 +10,7 @@ from web_control.tank_drive_server import run_teleop_server
 from lidar.lidar import lidar_loop
 from auto.autonomous_path import AutonomousPath
 from apriltag_detector import AprilTagDetector
+from mqtt.mqtt_handler import MQTTHandler
 
 lidar_enabled = True
 
@@ -37,6 +38,9 @@ is_going_to_ssb = True  # True if going to SSB, False if returning to library
 # Initialize AprilTag detector
 apriltag_detector = AprilTagDetector()
 
+# Initialize MQTT handler
+mqtt_handler = MQTTHandler()
+
 # GPIO setup
 BUTTON_PIN = 18  # You can change this to the actual GPIO pin you're using
 ESTOP_PIN = 23  # E-Stop button pin
@@ -60,6 +64,7 @@ def start_autonomous_path():
     autonomous_path.reset()
     autonomous_path.start_next_segment()
     print(f"Starting path {'from Library to SSB' if is_going_to_ssb else 'from SSB to Library'}")
+    mqtt_handler.report_new_run("to_ssb" if is_going_to_ssb else "to_library")
     is_going_to_ssb = not is_going_to_ssb  # Toggle the direction for next press
 
 def button_callback(channel):
@@ -72,9 +77,11 @@ def estop_callback(channel):
         print("E-Stop pressed, stopping robot")
         is_estopped = True
         stop_motors()
+        mqtt_handler.report_estop(True)
     else:
         print("E-Stop released, robot will resume in 1 second")
         estop_release_time = time.time() + 1  # Set release time to 1 second from now
+        mqtt_handler.report_estop(False)
 
 GPIO.add_event_detect(BUTTON_PIN, GPIO.FALLING, callback=button_callback, bouncetime=300)
 GPIO.add_event_detect(ESTOP_PIN, GPIO.BOTH, callback=estop_callback, bouncetime=300)
@@ -92,6 +99,7 @@ def periodic():
         if time.time() >= estop_release_time:
             is_estopped = False
             print("E-Stop delay complete, resuming operation")
+            mqtt_handler.report_estop(False)
         else:
             return  # Skip the rest of the periodic function if E-Stop is active
 
@@ -133,6 +141,10 @@ def periodic():
             encoder_value = position_signal.value
             print(f"Current encoder value: {encoder_value}")
 
+        # Report speed via MQTT
+        average_speed = (abs(left_power) + abs(right_power)) / 2
+        mqtt_handler.report_speed(average_speed)
+
     # 2. Check if the last PID command is finished
     if not last_pid_command_finished:
         if is_pid_command_finished():
@@ -147,6 +159,13 @@ def periodic():
     camera_april_tag_data = process_camera_april_tags()
     if camera_april_tag_data:
         current_position = update_position(current_position, camera_april_tag_data)
+
+    # Report position via MQTT
+    mqtt_handler.report_position(current_position[0], current_position[1], current_position[2])
+
+    # TODO: Add battery level reporting when available
+    # battery_level = get_battery_level()
+    # mqtt_handler.report_battery(battery_level)
 
 def is_pid_command_finished():
     # Check if the current PID command (e.g., turning or driving straight) is finished
