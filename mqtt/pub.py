@@ -47,9 +47,10 @@ client.on_connect= on_connect
 client.on_subscribe = on_subscribe
 client.on_message = on_message
 client.connect('www.advistatech.com', 10883)
-client.subscribe("coffeebot/robot-response", qos=0)
+# client.subscribe("coffeebot/robot-response", qos=0)
 
-(rc, mid) = client.publish('coffeebot/robot-request', payload="hot1", qos=0)
+(rc, mid) = client.publish('coffeebot/battery', payload="96", qos=0)
+(rc, mid) = client.publish('coffeebot/status', payload="true", qos=0)
 client.loop_start()
 while True:
     print("looping")

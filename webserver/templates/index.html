@@ -40,11 +40,25 @@
             text-align: center;
             color: #333;
         }
+        .connection-status {
+            text-align: center;
+            margin-bottom: 20px;
+            font-weight: bold;
+        }
+        .connected {
+            color: green;
+        }
+        .disconnected {
+            color: red;
+        }
     </style>
 </head>
 <body>
     <div class="dashboard">
         <h1>CoffeeBot Dashboard</h1>
+        <div class="connection-status" id="connection-status">
+            <i class="fas fa-circle"></i> <span>Disconnected</span>
+        </div>
         <div class="stat">
             <div class="icon"><i class="fas fa-battery-half"></i></div>
             <div class="value" id="battery">Battery: ---%</div>
@@ -65,13 +79,34 @@
 
     <script>
         const eventSource = new EventSource('/stats');
+        const connectionStatus = document.getElementById('connection-status');
+
+        function updateConnectionStatus(isConnected) {
+            if (isConnected) {
+                connectionStatus.innerHTML = '<i class="fas fa-circle"></i> <span>Connected</span>';
+                connectionStatus.classList.add('connected');
+                connectionStatus.classList.remove('disconnected');
+            } else {
+                connectionStatus.innerHTML = '<i class="fas fa-circle"></i> <span>Disconnected</span>';
+                connectionStatus.classList.add('disconnected');
+                connectionStatus.classList.remove('connected');
+            }
+        }
+
         eventSource.onmessage = function(event) {
             const data = JSON.parse(event.data);
             document.getElementById('battery').textContent = `Battery: ${data.battery_level}%`;
             document.getElementById('status').textContent = `Status: ${data.is_live ? 'Live' : 'Offline'}`;
             document.getElementById('total-runs').textContent = `Total Runs: ${data.total_runs}`;
             document.getElementById('daily-runs').textContent = `Daily Runs: ${data.daily_runs}`;
+            updateConnectionStatus(data.is_live);
         };
+
+        eventSource.onerror = function() {
+            updateConnectionStatus(false);
+        };
+
+        updateConnectionStatus(false);  // Initially set to disconnected
     </script>
 </body>
 </html>

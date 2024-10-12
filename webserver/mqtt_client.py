@@ -1,5 +1,6 @@
 import paho.mqtt.client as mqtt
 from database import Database
+import os
 
 class MQTTClient:
     def __init__(self, broker_address="www.advistatech.com", broker_port=10883):
@@ -13,8 +14,26 @@ class MQTTClient:
         self.is_live = False
         self.total_runs = 0
         self.daily_runs = 0
+        self.username = "coffeebot1"
+        self.password = self.load_password()
+
+    def load_password(self):
+        try:
+            password = os.environ['COFFEEBOT_MQTT_PASSWD']
+            if password:
+                return password
+            else:
+                print("Warning: COFFEEBOT_MQTT_PASSWD environment variable is set but empty.")
+                return None
+        except KeyError:
+            print("Warning: COFFEEBOT_MQTT_PASSWD environment variable is not set.")
+            return None
 
     def connect(self):
+        if self.username and self.password:
+            self.client.username_pw_set(self.username, self.password)
+        else:
+            print("Warning: MQTT username or password not set. Connecting without authentication.")
         self.client.connect(self.broker_address, self.broker_port, 60)
 
     def on_connect(self, client, userdata, flags, rc):
