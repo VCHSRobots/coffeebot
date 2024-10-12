@@ -3,12 +3,13 @@ import queue
 import threading
 import numpy as np
 from phoenix6 import controls, configs, hardware, signals, unmanaged
+import RPi.GPIO as GPIO
 
 sys.path.append(os.path.join(os.path.dirname(__file__), os.pardir))
 from web_control.tank_drive_server import run_teleop_server
 from lidar.lidar import lidar_loop
 from auto.autonomous_path import AutonomousPath
-from apriltag_detector import AprilTagDetector  # Import the AprilTagDetector
+from apriltag_detector import AprilTagDetector
 
 lidar_enabled = True
 
@@ -28,21 +29,38 @@ obstacle_signal = True  # default to true to be safe
 no_lidar_count = 0
 last_pid_command_finished = True
 
-# Initialize autonomous path
+# Initialize autonomous paths
 autonomous_path = AutonomousPath(talonfx_left, talonfx_right, motor_request)
 is_autonomous = False
+is_going_to_ssb = True  # True if going to SSB, False if returning to library
 
 # Initialize AprilTag detector
 apriltag_detector = AprilTagDetector()
 
+# GPIO setup
+BUTTON_PIN = 18  # You can change this to the actual GPIO pin you're using
+GPIO.setmode(GPIO.BCM)
+GPIO.setup(BUTTON_PIN, GPIO.IN, pull_up_down=GPIO.PUD_UP)
+
 def signal_handler(signal, frame):
     print('Received Ctrl+C, exiting...')
+    GPIO.cleanup()  # Clean up GPIO on exit
     sys.exit(0)
 
 def start_autonomous_path():
-    global is_autonomous
+    global is_autonomous, is_going_to_ssb
     is_autonomous = True
+    autonomous_path.is_to_ssb = is_going_to_ssb
+    autonomous_path.reset()
     autonomous_path.start_next_segment()
+    print(f"Starting path {'from Library to SSB' if is_going_to_ssb else 'from SSB to Library'}")
+    is_going_to_ssb = not is_going_to_ssb  # Toggle the direction for next press
+
+def button_callback(channel):
+    print("Button pressed, starting autonomous path")
+    start_autonomous_path()
+
+GPIO.add_event_detect(BUTTON_PIN, GPIO.FALLING, callback=button_callback, bouncetime=300)
 
 def periodic():
     global current_position, obstacle_signal, no_lidar_count, is_autonomous, last_pid_command_finished
@@ -61,7 +79,7 @@ def periodic():
     if is_autonomous:
         if not autonomous_path.update(obstacle_signal):
             is_autonomous = False
-            print("Autonomous path completed")
+            print(f"{'Arrived at SSB' if autonomous_path.is_to_ssb else 'Returned to Library'}")
     elif not teleop_queue.empty():
         msg_str = teleop_queue.get()
         msg_dict = ast.literal_eval(msg_str)
@@ -158,4 +176,5 @@ if __name__ == "__main__":
         run_teleop_server(teleop_queue)
     except KeyboardInterrupt:
         print('Received Ctrl+C, exiting...')
+        GPIO.cleanup()  # Clean up GPIO on exit
         sys.exit(0)
