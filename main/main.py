@@ -39,8 +39,14 @@ apriltag_detector = AprilTagDetector()
 
 # GPIO setup
 BUTTON_PIN = 18  # You can change this to the actual GPIO pin you're using
+ESTOP_PIN = 23  # E-Stop button pin
 GPIO.setmode(GPIO.BCM)
 GPIO.setup(BUTTON_PIN, GPIO.IN, pull_up_down=GPIO.PUD_UP)
+GPIO.setup(ESTOP_PIN, GPIO.IN, pull_up_down=GPIO.PUD_UP)
+
+# E-Stop variables
+is_estopped = False
+estop_release_time = 0
 
 def signal_handler(signal, frame):
     print('Received Ctrl+C, exiting...')
@@ -60,10 +66,34 @@ def button_callback(channel):
     print("Button pressed, starting autonomous path")
     start_autonomous_path()
 
+def estop_callback(channel):
+    global is_estopped, estop_release_time
+    if GPIO.input(ESTOP_PIN) == GPIO.LOW:
+        print("E-Stop pressed, stopping robot")
+        is_estopped = True
+        stop_motors()
+    else:
+        print("E-Stop released, robot will resume in 1 second")
+        estop_release_time = time.time() + 1  # Set release time to 1 second from now
+
 GPIO.add_event_detect(BUTTON_PIN, GPIO.FALLING, callback=button_callback, bouncetime=300)
+GPIO.add_event_detect(ESTOP_PIN, GPIO.BOTH, callback=estop_callback, bouncetime=300)
+
+def stop_motors():
+    motor_request.output = 0
+    talonfx_left.set_control(motor_request)
+    talonfx_right.set_control(motor_request)
 
 def periodic():
-    global current_position, obstacle_signal, no_lidar_count, is_autonomous, last_pid_command_finished
+    global current_position, obstacle_signal, no_lidar_count, is_autonomous, last_pid_command_finished, is_estopped, estop_release_time
+
+    # Check E-Stop status
+    if is_estopped:
+        if time.time() >= estop_release_time:
+            is_estopped = False
+            print("E-Stop delay complete, resuming operation")
+        else:
+            return  # Skip the rest of the periodic function if E-Stop is active
 
     # 0. Check the lidar queue
     if lidar_queue.empty():
