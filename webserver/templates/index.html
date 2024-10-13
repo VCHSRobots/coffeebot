@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>RoboFleet Dashboard</title>
+    <title>CoffeeBot Dashboard</title>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
         body {
@@ -15,7 +15,7 @@
         }
         .dashboard {
             display: grid;
-            grid-template-columns: repeat(4, 1fr);
+            grid-template-columns: repeat(3, 1fr);
             grid-gap: 15px;
         }
         .card {
@@ -37,28 +37,29 @@
         }
         .gauge-container {
             display: flex;
-            justify-content: space-around;
+            justify-content: center;
+            align-items: center;
+            height: 100%;
         }
         .gauge-chart {
             width: 100%;
-            max-width: 120px;
+            max-width: 150px;
             text-align: center;
         }
-        .kpi-container {
-            grid-column: span 2;
+        .battery-gauge {
+            grid-column: span 1;
         }
-        .fleet-usage {
+        .messages-container {
             grid-column: span 2;
         }
         .runs-chart {
-            grid-column: span 4;
-        }
-        .messages-container {
-            grid-column: span 4;
+            grid-column: span 3;
         }
         #last-messages {
             font-size: 14px;
             line-height: 1.5;
+            max-height: 150px;
+            overflow-y: auto;
         }
     </style>
 </head>
@@ -78,54 +79,34 @@
             <div class="card-value" id="charging-status">--</div>
         </div>
         <div class="card">
-            <div class="card-title">Battery consumption</div>
-            <div class="card-value" id="battery-consumption">-- kWh</div>
+            <div class="card-title">Total Trips</div>
+            <div class="card-value" id="total-trips">--</div>
         </div>
         <div class="card">
-            <div class="card-title">Floor clean</div>
-            <div class="card-value" id="floor-clean">-- sqft</div>
+            <div class="card-title">Cups of Coffee Delivered</div>
+            <div class="card-value" id="coffee-delivered">--</div>
         </div>
         <div class="card">
-            <div class="card-title">Picks</div>
-            <div class="card-value" id="picks">--</div>
+            <div class="card-title">Average Trip Time</div>
+            <div class="card-value" id="average-trip-time">--</div>
         </div>
-        <div class="card">
-            <div class="card-title">Average uptime</div>
-            <div class="card-value" id="average-uptime">--%</div>
-        </div>
-        <div class="card">
-            <div class="card-title">Total usage</div>
-            <div class="card-value" id="total-usage">-- hrs</div>
-        </div>
-        <div class="card kpi-container">
-            <div class="card-title">KPI</div>
+        <div class="card battery-gauge">
             <div class="gauge-container">
                 <div class="gauge-chart">
                     <canvas id="battery-gauge"></canvas>
                     <div class="card-title">Battery</div>
                 </div>
-                <div class="gauge-chart">
-                    <canvas id="job-completion-gauge"></canvas>
-                    <div class="card-title">Job Completion %</div>
-                    <div class="card-title">7 Day average</div>
-                </div>
             </div>
         </div>
-        <div class="card fleet-usage">
-            <div class="card-title">Fleet usage</div>
-            <div class="chart-container">
-                <canvas id="fleet-usage-chart"></canvas>
-            </div>
+        <div class="card messages-container">
+            <div class="card-title">Last Messages Received</div>
+            <div id="last-messages"></div>
         </div>
         <div class="card runs-chart">
             <div class="card-title">Runs</div>
             <div class="chart-container">
                 <canvas id="runs-chart"></canvas>
             </div>
-        </div>
-        <div class="card messages-container">
-            <div class="card-title">Last Messages Received</div>
-            <div id="last-messages"></div>
         </div>
     </div>
 
@@ -155,31 +136,6 @@
 
         // Create battery gauge
         const batteryGauge = createGauge('battery-gauge', 16, 'Battery', '#ff9800');
-
-        // Create job completion gauge
-        const jobCompletionGauge = createGauge('job-completion-gauge', 92, 'Job Completion', '#4caf50');
-
-        // Create fleet usage chart
-        const fleetUsageChart = new Chart(document.getElementById('fleet-usage-chart'), {
-            type: 'line',
-            data: {
-                labels: Array.from({length: 20}, (_, i) => i + 1),
-                datasets: [{
-                    data: Array.from({length: 20}, () => Math.random() * 100),
-                    borderColor: '#4caf50',
-                    tension: 0.4,
-                    fill: false
-                }]
-            },
-            options: {
-                plugins: { legend: { display: false } },
-                scales: {
-                    x: { display: false },
-                    y: { display: false }
-                },
-                animation: { duration: 1000 }
-            }
-        });
 
         // Create runs chart
         const runsChart = new Chart(document.getElementById('runs-chart'), {
@@ -216,23 +172,15 @@
             document.getElementById('last-reported').textContent = Math.floor(Math.random() * 60);
             document.getElementById('running-status').textContent = Math.random() > 0.5 ? 'True' : 'False';
             document.getElementById('charging-status').textContent = Math.random() > 0.5 ? 'True' : 'False';
-            document.getElementById('battery-consumption').textContent = (Math.random() * 100).toFixed(2) + ' kWh';
-            document.getElementById('floor-clean').textContent = Math.floor(Math.random() * 5000) + ' sqft';
-            document.getElementById('picks').textContent = Math.floor(Math.random() * 10000);
-            document.getElementById('average-uptime').textContent = (Math.random() * 100).toFixed(2) + '%';
-            document.getElementById('total-usage').textContent = Math.floor(Math.random() * 1000) + ' hrs';
+            document.getElementById('total-trips').textContent = Math.floor(Math.random() * 5000);
+            document.getElementById('coffee-delivered').textContent = Math.floor(Math.random() * 10000);
+            document.getElementById('average-trip-time').textContent = (Math.random() * 10).toFixed(2) + ' min';
 
-            // Update gauges
+            // Update battery gauge
             batteryGauge.data.datasets[0].data[0] = Math.floor(Math.random() * 100);
             batteryGauge.update();
 
-            jobCompletionGauge.data.datasets[0].data[0] = Math.floor(Math.random() * 100);
-            jobCompletionGauge.update();
-
-            // Update charts
-            fleetUsageChart.data.datasets[0].data = Array.from({length: 20}, () => Math.random() * 100);
-            fleetUsageChart.update();
-
+            // Update runs chart
             runsChart.data.datasets[0].data = Array.from({length: 30}, () => Math.random() * 100);
             runsChart.update();
 
