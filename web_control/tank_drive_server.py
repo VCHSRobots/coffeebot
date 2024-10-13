@@ -35,18 +35,20 @@ html = """
             display: flex;
             flex: 1;
             touch-action: none;
+            justify-content: center;
+            align-items: center;
         }
         .slider-container {
             display: flex;
             flex-direction: column;
             justify-content: center;
             align-items: center;
-            flex: 1;
+            height: 100%;
         }
         .slider {
             -webkit-appearance: none;
-            width: 80%;
-            height: 300px;
+            width: 60px;
+            height: 200px;
             background: #d3d3d3;
             outline: none;
             writing-mode: bt-lr;
@@ -73,21 +75,39 @@ html = """
             padding: 10px;
             font-weight: bold;
         }
+        .turn-button {
+            width: 80px;
+            height: 80px;
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            border-radius: 10px;
+            font-size: 16px;
+            cursor: pointer;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            margin: 0 20px;
+        }
     </style>
 </head>
 <body>
     <div id="status">Disconnected</div>
     <div class="container">
+        <button id="leftTurn" class="turn-button">Left</button>
         <div class="slider-container">
             <input type="range" min="-100" max="100" value="0" class="slider" id="leftSlider">
         </div>
         <div class="slider-container">
             <input type="range" min="-100" max="100" value="0" class="slider" id="rightSlider">
         </div>
+        <button id="rightTurn" class="turn-button">Right</button>
     </div>
     <script>
         const leftSlider = document.getElementById('leftSlider');
         const rightSlider = document.getElementById('rightSlider');
+        const leftTurnBtn = document.getElementById('leftTurn');
+        const rightTurnBtn = document.getElementById('rightTurn');
         const status = document.getElementById('status');
         let ws;
 
@@ -141,6 +161,18 @@ html = """
         rightSlider.addEventListener('touchend', () => resetSlider(rightSlider));
         leftSlider.addEventListener('mouseup', () => resetSlider(leftSlider));
         rightSlider.addEventListener('mouseup', () => resetSlider(rightSlider));
+
+        leftTurnBtn.addEventListener('click', () => {
+            if (ws && ws.readyState === WebSocket.OPEN) {
+                ws.send(JSON.stringify({turn: 'left'}));
+            }
+        });
+
+        rightTurnBtn.addEventListener('click', () => {
+            if (ws && ws.readyState === WebSocket.OPEN) {
+                ws.send(JSON.stringify({turn: 'right'}));
+            }
+        });
     </script>
 </body>
 </html>
@@ -181,4 +213,5 @@ def run_teleop_server(queue):
     web.run_app(app, host='0.0.0.0', port=8080)
 
 if __name__ == '__main__':
-    run_teleop_server()
+    teleop_queue = queue.Queue(2)
+    run_teleop_server(teleop_queue)
