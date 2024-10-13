@@ -45,6 +45,7 @@
             width: 100%;
             max-width: 150px;
             text-align: center;
+            position: relative;
         }
         .battery-gauge {
             grid-column: span 1;
@@ -61,13 +62,21 @@
             max-height: 150px;
             overflow-y: auto;
         }
+        .battery-percentage {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            font-size: 24px;
+            font-weight: bold;
+        }
     </style>
 </head>
 <body>
     <h1>CoffeeBot</h1>
     <div class="dashboard">
         <div class="card">
-            <div class="card-title">Last Reported in minutes</div>
+            <div class="card-title">Last Reported</div>
             <div class="card-value" id="last-reported">--</div>
         </div>
         <div class="card">
@@ -83,17 +92,18 @@
             <div class="card-value" id="total-trips">--</div>
         </div>
         <div class="card">
-            <div class="card-title">Cups of Coffee Delivered</div>
-            <div class="card-value" id="coffee-delivered">--</div>
+            <div class="card-title">Daily Runs</div>
+            <div class="card-value" id="daily-runs">--</div>
         </div>
         <div class="card">
-            <div class="card-title">Average Trip Time</div>
-            <div class="card-value" id="average-trip-time">--</div>
+            <div class="card-title">Is Live</div>
+            <div class="card-value" id="is-live">--</div>
         </div>
         <div class="card battery-gauge">
             <div class="gauge-container">
                 <div class="gauge-chart">
                     <canvas id="battery-gauge"></canvas>
+                    <div class="battery-percentage" id="battery-percentage">--</div>
                     <div class="card-title">Battery</div>
                 </div>
             </div>
@@ -135,15 +145,15 @@
         }
 
         // Create battery gauge
-        const batteryGauge = createGauge('battery-gauge', 16, 'Battery', '#ff9800');
+        const batteryGauge = createGauge('battery-gauge', 0, 'Battery', '#ff9800');
 
         // Create runs chart
         const runsChart = new Chart(document.getElementById('runs-chart'), {
             type: 'line',
             data: {
-                labels: Array.from({length: 30}, (_, i) => i + 1),
+                labels: [],
                 datasets: [{
-                    data: Array.from({length: 30}, () => Math.random() * 100),
+                    data: [],
                     borderColor: '#2196f3',
                     tension: 0.4,
                     fill: false
@@ -167,38 +177,45 @@
             }
         });
 
-        // Function to update dashboard with mock data
-        function updateDashboard() {
-            document.getElementById('last-reported').textContent = Math.floor(Math.random() * 60);
-            document.getElementById('running-status').textContent = Math.random() > 0.5 ? 'True' : 'False';
-            document.getElementById('charging-status').textContent = Math.random() > 0.5 ? 'True' : 'False';
-            document.getElementById('total-trips').textContent = Math.floor(Math.random() * 5000);
-            document.getElementById('coffee-delivered').textContent = Math.floor(Math.random() * 10000);
-            document.getElementById('average-trip-time').textContent = (Math.random() * 10).toFixed(2) + ' min';
+        // Function to update dashboard with real data
+        function updateDashboard(data) {
+            document.getElementById('last-reported').textContent = new Date(data.timestamp).toLocaleString();
+            document.getElementById('running-status').textContent = data.is_live ? 'True' : 'False';
+            document.getElementById('is-live').textContent = data.is_live ? 'True' : 'False';
+            document.getElementById('total-trips').textContent = data.total_runs;
+            document.getElementById('daily-runs').textContent = data.daily_runs;
 
             // Update battery gauge
-            batteryGauge.data.datasets[0].data[0] = Math.floor(Math.random() * 100);
+            batteryGauge.data.datasets[0].data[0] = data.battery_level;
+            batteryGauge.data.datasets[0].data[1] = 100 - data.battery_level;
             batteryGauge.update();
+            document.getElementById('battery-percentage').textContent = data.battery_level.toFixed(2) + '%';
 
             // Update runs chart
-            runsChart.data.datasets[0].data = Array.from({length: 30}, () => Math.random() * 100);
+            if (runsChart.data.labels.length >= 30) {
+                runsChart.data.labels.shift();
+                runsChart.data.datasets[0].data.shift();
+            }
+            runsChart.data.labels.push(new Date(data.timestamp).toLocaleTimeString());
+            runsChart.data.datasets[0].data.push(data.daily_runs);
             runsChart.update();
 
             // Update last messages
-            const messages = [
-                'AGV01: LAX-DC1 10:13:45',
-                'ARC01: LAX-DC1 10: 3:40',
-                'SCR08: LAX-DC1 10: 0:40',
-                'AMR01: LAX-DC1 09:59:50'
-            ];
-            document.getElementById('last-messages').innerHTML = messages.map(msg => `<div>${msg}</div>`).join('');
+            const messageElement = document.createElement('div');
+            messageElement.textContent = `Update: ${new Date(data.timestamp).toLocaleString()}`;
+            const messagesContainer = document.getElementById('last-messages');
+            messagesContainer.insertBefore(messageElement, messagesContainer.firstChild);
+            if (messagesContainer.children.length > 5) {
+                messagesContainer.removeChild(messagesContainer.lastChild);
+            }
         }
 
-        // Initial update
-        updateDashboard();
-
-        // Update every 5 seconds
-        setInterval(updateDashboard, 5000);
+        // Set up EventSource for real-time updates
+        const eventSource = new EventSource('/stats');
+        eventSource.onmessage = function(event) {
+            const data = JSON.parse(event.data);
+            updateDashboard(data);
+        };
     </script>
 </body>
 </html>
