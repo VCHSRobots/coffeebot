@@ -35,8 +35,9 @@ html = """
             display: flex;
             flex: 1;
             touch-action: none;
-            justify-content: center;
+            justify-content: space-between;
             align-items: center;
+            padding: 0 20px;
         }
         .slider-container {
             display: flex;
@@ -87,7 +88,12 @@ html = """
             display: flex;
             justify-content: center;
             align-items: center;
-            margin: 0 20px;
+        }
+        .controls {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            width: 60%;
         }
     </style>
 </head>
@@ -95,11 +101,13 @@ html = """
     <div id="status">Disconnected</div>
     <div class="container">
         <button id="leftTurn" class="turn-button">Left</button>
-        <div class="slider-container">
-            <input type="range" min="-100" max="100" value="0" class="slider" id="leftSlider">
-        </div>
-        <div class="slider-container">
-            <input type="range" min="-100" max="100" value="0" class="slider" id="rightSlider">
+        <div class="controls">
+            <div class="slider-container">
+                <input type="range" min="-100" max="100" value="0" class="slider" id="leftSlider">
+            </div>
+            <div class="slider-container">
+                <input type="range" min="-100" max="100" value="0" class="slider" id="rightSlider">
+            </div>
         </div>
         <button id="rightTurn" class="turn-button">Right</button>
     </div>
