@@ -3,110 +3,254 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>CoffeeBot Dashboard</title>
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.1.1/css/all.min.css">
+    <title>RoboFleet Dashboard</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
         body {
             font-family: Arial, sans-serif;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            height: 100vh;
+            background-color: #1e1e1e;
+            color: #ffffff;
             margin: 0;
-            background-color: #f0f0f0;
+            padding: 20px;
         }
         .dashboard {
-            background-color: white;
-            border-radius: 10px;
-            padding: 20px;
-            box-shadow: 0 0 10px rgba(0,0,0,0.1);
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            grid-gap: 15px;
         }
-        .stat {
+        .card {
+            background-color: #2d2d2d;
+            border-radius: 8px;
+            padding: 15px;
+        }
+        .card-title {
+            font-size: 12px;
+            margin-bottom: 5px;
+            color: #888;
+        }
+        .card-value {
+            font-size: 24px;
+            font-weight: bold;
+        }
+        .chart-container {
+            height: 200px;
+        }
+        .gauge-container {
             display: flex;
-            align-items: center;
-            margin-bottom: 20px;
+            justify-content: space-around;
         }
-        .icon {
-            font-size: 2em;
-            margin-right: 15px;
-            width: 40px;
+        .gauge-chart {
+            width: 100%;
+            max-width: 120px;
             text-align: center;
         }
-        .value {
-            font-size: 1.2em;
-            font-weight: bold;
+        .kpi-container {
+            grid-column: span 2;
         }
-        h1 {
-            text-align: center;
-            color: #333;
+        .fleet-usage {
+            grid-column: span 2;
         }
-        .connection-status {
-            text-align: center;
-            margin-bottom: 20px;
-            font-weight: bold;
+        .runs-chart {
+            grid-column: span 4;
         }
-        .connected {
-            color: green;
+        .messages-container {
+            grid-column: span 4;
         }
-        .disconnected {
-            color: red;
+        #last-messages {
+            font-size: 14px;
+            line-height: 1.5;
         }
     </style>
 </head>
 <body>
+    <h1>CoffeeBot</h1>
     <div class="dashboard">
-        <h1>CoffeeBot Dashboard</h1>
-        <div class="connection-status" id="connection-status">
-            <i class="fas fa-circle"></i> <span>Disconnected</span>
+        <div class="card">
+            <div class="card-title">Last Reported in minutes</div>
+            <div class="card-value" id="last-reported">--</div>
         </div>
-        <div class="stat">
-            <div class="icon"><i class="fas fa-battery-half"></i></div>
-            <div class="value" id="battery">Battery: ---%</div>
+        <div class="card">
+            <div class="card-title">Running</div>
+            <div class="card-value" id="running-status">--</div>
         </div>
-        <div class="stat">
-            <div class="icon"><i class="fas fa-power-off"></i></div>
-            <div class="value" id="status">Status: ---</div>
+        <div class="card">
+            <div class="card-title">Charging</div>
+            <div class="card-value" id="charging-status">--</div>
         </div>
-        <div class="stat">
-            <div class="icon"><i class="fas fa-mug-hot"></i></div>
-            <div class="value" id="total-runs">Total Runs: ---</div>
+        <div class="card">
+            <div class="card-title">Battery consumption</div>
+            <div class="card-value" id="battery-consumption">-- kWh</div>
         </div>
-        <div class="stat">
-            <div class="icon"><i class="fas fa-calendar-day"></i></div>
-            <div class="value" id="daily-runs">Daily Runs: ---</div>
+        <div class="card">
+            <div class="card-title">Floor clean</div>
+            <div class="card-value" id="floor-clean">-- sqft</div>
+        </div>
+        <div class="card">
+            <div class="card-title">Picks</div>
+            <div class="card-value" id="picks">--</div>
+        </div>
+        <div class="card">
+            <div class="card-title">Average uptime</div>
+            <div class="card-value" id="average-uptime">--%</div>
+        </div>
+        <div class="card">
+            <div class="card-title">Total usage</div>
+            <div class="card-value" id="total-usage">-- hrs</div>
+        </div>
+        <div class="card kpi-container">
+            <div class="card-title">KPI</div>
+            <div class="gauge-container">
+                <div class="gauge-chart">
+                    <canvas id="battery-gauge"></canvas>
+                    <div class="card-title">Battery</div>
+                </div>
+                <div class="gauge-chart">
+                    <canvas id="job-completion-gauge"></canvas>
+                    <div class="card-title">Job Completion %</div>
+                    <div class="card-title">7 Day average</div>
+                </div>
+            </div>
+        </div>
+        <div class="card fleet-usage">
+            <div class="card-title">Fleet usage</div>
+            <div class="chart-container">
+                <canvas id="fleet-usage-chart"></canvas>
+            </div>
+        </div>
+        <div class="card runs-chart">
+            <div class="card-title">Runs</div>
+            <div class="chart-container">
+                <canvas id="runs-chart"></canvas>
+            </div>
+        </div>
+        <div class="card messages-container">
+            <div class="card-title">Last Messages Received</div>
+            <div id="last-messages"></div>
         </div>
     </div>
 
     <script>
-        const eventSource = new EventSource('/stats');
-        const connectionStatus = document.getElementById('connection-status');
-
-        function updateConnectionStatus(isConnected) {
-            if (isConnected) {
-                connectionStatus.innerHTML = '<i class="fas fa-circle"></i> <span>Connected</span>';
-                connectionStatus.classList.add('connected');
-                connectionStatus.classList.remove('disconnected');
-            } else {
-                connectionStatus.innerHTML = '<i class="fas fa-circle"></i> <span>Disconnected</span>';
-                connectionStatus.classList.add('disconnected');
-                connectionStatus.classList.remove('connected');
-            }
+        // Helper function to create a gauge chart
+        function createGauge(elementId, value, label, color) {
+            return new Chart(document.getElementById(elementId), {
+                type: 'doughnut',
+                data: {
+                    datasets: [{
+                        data: [value, 100 - value],
+                        backgroundColor: [color, '#4a4a4a']
+                    }]
+                },
+                options: {
+                    circumference: 180,
+                    rotation: -90,
+                    cutout: '80%',
+                    plugins: {
+                        legend: { display: false },
+                        tooltip: { enabled: false }
+                    },
+                    animation: { duration: 1000 }
+                }
+            });
         }
 
-        eventSource.onmessage = function(event) {
-            const data = JSON.parse(event.data);
-            document.getElementById('battery').textContent = `Battery: ${data.battery_level}%`;
-            document.getElementById('status').textContent = `Status: ${data.is_live ? 'Live' : 'Offline'}`;
-            document.getElementById('total-runs').textContent = `Total Runs: ${data.total_runs}`;
-            document.getElementById('daily-runs').textContent = `Daily Runs: ${data.daily_runs}`;
-            updateConnectionStatus(data.is_live);
-        };
+        // Create battery gauge
+        const batteryGauge = createGauge('battery-gauge', 16, 'Battery', '#ff9800');
 
-        eventSource.onerror = function() {
-            updateConnectionStatus(false);
-        };
+        // Create job completion gauge
+        const jobCompletionGauge = createGauge('job-completion-gauge', 92, 'Job Completion', '#4caf50');
 
-        updateConnectionStatus(false);  // Initially set to disconnected
+        // Create fleet usage chart
+        const fleetUsageChart = new Chart(document.getElementById('fleet-usage-chart'), {
+            type: 'line',
+            data: {
+                labels: Array.from({length: 20}, (_, i) => i + 1),
+                datasets: [{
+                    data: Array.from({length: 20}, () => Math.random() * 100),
+                    borderColor: '#4caf50',
+                    tension: 0.4,
+                    fill: false
+                }]
+            },
+            options: {
+                plugins: { legend: { display: false } },
+                scales: {
+                    x: { display: false },
+                    y: { display: false }
+                },
+                animation: { duration: 1000 }
+            }
+        });
+
+        // Create runs chart
+        const runsChart = new Chart(document.getElementById('runs-chart'), {
+            type: 'line',
+            data: {
+                labels: Array.from({length: 30}, (_, i) => i + 1),
+                datasets: [{
+                    data: Array.from({length: 30}, () => Math.random() * 100),
+                    borderColor: '#2196f3',
+                    tension: 0.4,
+                    fill: false
+                }]
+            },
+            options: {
+                plugins: { legend: { display: false } },
+                scales: {
+                    x: { 
+                        display: true, 
+                        grid: { color: '#444' },
+                        ticks: { color: '#888' }
+                    },
+                    y: { 
+                        display: true, 
+                        grid: { color: '#444' },
+                        ticks: { color: '#888' }
+                    }
+                },
+                animation: { duration: 1000 }
+            }
+        });
+
+        // Function to update dashboard with mock data
+        function updateDashboard() {
+            document.getElementById('last-reported').textContent = Math.floor(Math.random() * 60);
+            document.getElementById('running-status').textContent = Math.random() > 0.5 ? 'True' : 'False';
+            document.getElementById('charging-status').textContent = Math.random() > 0.5 ? 'True' : 'False';
+            document.getElementById('battery-consumption').textContent = (Math.random() * 100).toFixed(2) + ' kWh';
+            document.getElementById('floor-clean').textContent = Math.floor(Math.random() * 5000) + ' sqft';
+            document.getElementById('picks').textContent = Math.floor(Math.random() * 10000);
+            document.getElementById('average-uptime').textContent = (Math.random() * 100).toFixed(2) + '%';
+            document.getElementById('total-usage').textContent = Math.floor(Math.random() * 1000) + ' hrs';
+
+            // Update gauges
+            batteryGauge.data.datasets[0].data[0] = Math.floor(Math.random() * 100);
+            batteryGauge.update();
+
+            jobCompletionGauge.data.datasets[0].data[0] = Math.floor(Math.random() * 100);
+            jobCompletionGauge.update();
+
+            // Update charts
+            fleetUsageChart.data.datasets[0].data = Array.from({length: 20}, () => Math.random() * 100);
+            fleetUsageChart.update();
+
+            runsChart.data.datasets[0].data = Array.from({length: 30}, () => Math.random() * 100);
+            runsChart.update();
+
+            // Update last messages
+            const messages = [
+                'AGV01: LAX-DC1 10:13:45',
+                'ARC01: LAX-DC1 10: 3:40',
+                'SCR08: LAX-DC1 10: 0:40',
+                'AMR01: LAX-DC1 09:59:50'
+            ];
+            document.getElementById('last-messages').innerHTML = messages.map(msg => `<div>${msg}</div>`).join('');
+        }
+
+        // Initial update
+        updateDashboard();
+
+        // Update every 5 seconds
+        setInterval(updateDashboard, 5000);
     </script>
 </body>
 </html>
