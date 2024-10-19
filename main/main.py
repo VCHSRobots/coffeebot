@@ -3,16 +3,18 @@ import queue
 import threading
 import numpy as np
 from phoenix6 import controls, configs, hardware, signals, unmanaged
-import RPi.GPIO as GPIO
-
+from sys import platform
 sys.path.append(os.path.join(os.path.dirname(__file__), os.pardir))
+if platform == "linux" or platform == "linux2":
+    import RPi.GPIO as GPIO
+    from lidar.lidar import lidar_loop
+
 from web_control.tank_drive_server import run_teleop_server
-from lidar.lidar import lidar_loop
 from auto.autonomous_path import AutonomousPath
-from apriltag_detector import AprilTagDetector
+# from apriltag_detector import AprilTagDetector
 from mqtt.mqtt_handler import MQTTHandler
 
-lidar_enabled = True
+lidar_enabled = False
 
 talonfx_left = hardware.TalonFX(1)
 talonfx_right = hardware.TalonFX(2)
@@ -36,7 +38,7 @@ is_autonomous = False
 is_going_to_ssb = True  # True if going to SSB, False if returning to library
 
 # Initialize AprilTag detector
-apriltag_detector = AprilTagDetector()
+# apriltag_detector = AprilTagDetector()
 
 # Initialize MQTT handler
 mqtt_handler = MQTTHandler()
@@ -44,9 +46,9 @@ mqtt_handler = MQTTHandler()
 # GPIO setup
 BUTTON_PIN = 18  # You can change this to the actual GPIO pin you're using
 ESTOP_PIN = 23  # E-Stop button pin
-GPIO.setmode(GPIO.BCM)
-GPIO.setup(BUTTON_PIN, GPIO.IN, pull_up_down=GPIO.PUD_UP)
-GPIO.setup(ESTOP_PIN, GPIO.IN, pull_up_down=GPIO.PUD_UP)
+# GPIO.setmode(GPIO.BCM)
+# GPIO.setup(BUTTON_PIN, GPIO.IN, pull_up_down=GPIO.PUD_UP)
+# GPIO.setup(ESTOP_PIN, GPIO.IN, pull_up_down=GPIO.PUD_UP)
 
 # E-Stop variables
 is_estopped = False
@@ -54,7 +56,7 @@ estop_release_time = 0
 
 def signal_handler(signal, frame):
     print('Received Ctrl+C, exiting...')
-    GPIO.cleanup()  # Clean up GPIO on exit
+    # GPIO.cleanup()  # Clean up GPIO on exit
     sys.exit(0)
 
 def start_autonomous_path():
@@ -83,8 +85,8 @@ def estop_callback(channel):
         estop_release_time = time.time() + 1  # Set release time to 1 second from now
         mqtt_handler.report_estop(False)
 
-GPIO.add_event_detect(BUTTON_PIN, GPIO.FALLING, callback=button_callback, bouncetime=300)
-GPIO.add_event_detect(ESTOP_PIN, GPIO.BOTH, callback=estop_callback, bouncetime=300)
+# GPIO.add_event_detect(BUTTON_PIN, GPIO.FALLING, callback=button_callback, bouncetime=300)
+# GPIO.add_event_detect(ESTOP_PIN, GPIO.BOTH, callback=estop_callback, bouncetime=300)
 
 def stop_motors():
     motor_request.output = 0
@@ -107,7 +109,7 @@ def periodic():
     if lidar_queue.empty():
         no_lidar_count += 1
         if no_lidar_count > 10:  # force robot to stop if no lidar signal
-            obstacle_signal = True
+            obstacle_signal = False
     else:
         no_lidar_count = 0
         obstacle_timestamp, obstacle_signal = lidar_queue.get()
@@ -150,15 +152,10 @@ def periodic():
         if is_pid_command_finished():
             last_pid_command_finished = True
 
-    # 3. Check the NetworkTable for AprilTag information
-    april_tag_data = get_april_tag_data()
-    if april_tag_data:
-        current_position = update_position(current_position, april_tag_data)
-
-    # 4. Process camera AprilTag detection
-    camera_april_tag_data = process_camera_april_tags()
-    if camera_april_tag_data:
-        current_position = update_position(current_position, camera_april_tag_data)
+    # 3. Process camera AprilTag detection
+    #camera_april_tag_data = process_camera_april_tags()
+    #if camera_april_tag_data:
+    #    current_position = update_position(current_position, camera_april_tag_data)
 
     # Report position via MQTT
     mqtt_handler.report_position(current_position[0], current_position[1], current_position[2])
@@ -196,6 +193,7 @@ def update_position(current_position, new_pose):
 def main_loop():
     print("Starting main control loop...")
     start_time = time.time()
+    start_autonomous_path()
     while True:
         periodic_start_time = time.time()
         periodic()
@@ -225,5 +223,5 @@ if __name__ == "__main__":
         run_teleop_server(teleop_queue)
     except KeyboardInterrupt:
         print('Received Ctrl+C, exiting...')
-        GPIO.cleanup()  # Clean up GPIO on exit
+        # GPIO.cleanup()  # Clean up GPIO on exit
         sys.exit(0)

@@ -31,7 +31,8 @@ class MQTTHandler:
             return None
 
     def on_publish(self, client, userdata, mid):
-        print("publish: mid: "+str(mid))
+        #print("publish: mid: "+str(mid))
+        pass
 
     def on_connect(self, client, userdata, flags, rc, properties=None):
         print("connect: CONNACK received with code %s." % rc)
