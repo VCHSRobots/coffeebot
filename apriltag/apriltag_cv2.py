@@ -1,6 +1,5 @@
 import cv2
 import numpy as np
-import os
 import math
 
 # Set up the AprilTag dictionary
@@ -12,10 +11,6 @@ detector = cv2.aruco.ArucoDetector(aruco_dict, aruco_params)
 
 # Open the default camera
 cap = cv2.VideoCapture(0)
-
-# Create a directory to store the output images
-output_dir = 'apriltag_output'
-os.makedirs(output_dir, exist_ok=True)
 
 # Camera calibration parameters (replace these with your actual calibrated values)
 camera_matrix = np.array([
@@ -35,12 +30,11 @@ object_points = np.array([
     [-tag_size/2, -tag_size/2, 0]
 ], dtype=np.float32)
 
-# Process 100 frames
-for frame_count in range(100):
+while True:
     # Capture frame-by-frame
     ret, frame = cap.read()
     if not ret:
-        print(f"Failed to capture frame {frame_count}")
+        print("Failed to capture frame")
         break
 
     # Convert the frame to grayscale
@@ -73,7 +67,6 @@ for frame_count in range(100):
                 x, y, z = tvec.flatten()
 
                 # Calculate angle (assuming rotation around y-axis)
-                # Extract the first elements from rvec to avoid the deprecation warning
                 angle = math.atan2(rvec[2, 0], rvec[0, 0])
                 angle_deg = math.degrees(angle)
 
@@ -85,17 +78,15 @@ for frame_count in range(100):
                 cv2.putText(frame, f"Angle: {angle_deg:.2f} deg", (center[0], center[1]),
                             cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 0), 2)
 
-                print(f"Frame {frame_count}: Detected AprilTag ID {tag_id}")
-                print(f"  Position: x={x:.2f}, y={y:.2f}, z={z:.2f}")
-                print(f"  Angle: {angle_deg:.2f} degrees")
+    # Display the resulting frame
+    cv2.imshow('AprilTag Detection', frame)
 
-    # Save the processed frame
-    output_path = os.path.join(output_dir, f'frame_{frame_count:03d}.jpg')
-    cv2.imwrite(output_path, frame)
+    # Break the loop if 'q' is pressed
+    if cv2.waitKey(1) & 0xFF == ord('q'):
+        break
 
-    print(f"Saved frame {frame_count} to {output_path}")
-
-# Release the capture
+# Release the capture and close all windows
 cap.release()
+cv2.destroyAllWindows()
 
-print("Processing complete. Check the 'apriltag_output' directory for the processed frames.")
+print("AprilTag detection stream ended.")
